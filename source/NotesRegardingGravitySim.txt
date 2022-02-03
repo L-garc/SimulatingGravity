@@ -1,0 +1,22 @@
+All units are metric: Kilograms, meters, meters / seconds...
+
+Height of a projectile after t seconds,
+H(t) = -9.8x^2 + Vt
+where -9.8 (m/s^2) is acceleration due to gravity, and V is the initial velocity of the projectile
+
+~28px represents 1 meter, so 5 meters means 140px
+
+Currently vertical box displacement is 0 (meaning I have not yet implimented a method for allowing the box to "land" on the surface of a differing elevation)
+
+Using calculus and introducing other variables such as mass allows me to impliment Force, and using it to calculate force imparted on other objects, such as walls, the ground, or with some light modification for use to calculate damage to enemy sprites in videogames
+
+Time.time() is wildly inaccurate but consistent, 1.4 seconds elapsed is reported as .6 seconds?
+An external stopwatch was accurate and consistent with what I expected to occur. According to the equation for a vertically launched projectile, I expected the block to "land" after 1.4 seconds which the external stopwatch demonstrated to be correct.
+
+Horizontal movement was added but there is no momentum or friction, so if this were for a physics engine (such as for videogames) it would not look or feel great
+
+Instead of setting the box's Y-coordinate to be exactly what the function outputs, the box's position is moved up/down by the height which the equation calculates. A 1:1 ratio for pixels : meters is too small to be usable for graphics).
+
+Consider adding a unit conversion function for consistency.
+
+Consider using the list of y-values (the height of the projectile after t seconds) to find the difference between those values. Using the differences between those y-values multiplied by a constant allows one to change the vertical pixel-to-meter ratio
