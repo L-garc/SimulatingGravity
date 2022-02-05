@@ -20,3 +20,5 @@ Instead of setting the box's Y-coordinate to be exactly what the function output
 Consider adding a unit conversion function for consistency.
 
 Consider using the list of y-values (the height of the projectile after t seconds) to find the difference between those values. Using the differences between those y-values multiplied by a constant allows one to change the vertical pixel-to-meter ratio
+
+Coding this program has brought to my attention an interesting question; would it be better to precalculate values from equations or calculate values on the fly? Is recalling values from a list 60 times a second faster/more efficient than calculating a value, then calculating the next value 60 times a second? Research on this question also notes, worry about getting a program functional/useable before deciding to optimize it.
