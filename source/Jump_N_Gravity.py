@@ -77,7 +77,7 @@ class Player():
             hitRec = groundsList[collideIndex] #The collided with object is stored here
             
             #If approaching from the left and the box is below the rect object's (ground) top
-            if (self.dx > 0) and (self.Rec.y > hitRec.y):
+            if (self.dx > 0) and (self.Rec.y + self.Rec.h > hitRec.y):
                 self.Rec.update((hitRec.x - self.w), self.Rec.y, self.Rec.w, self.Rec.h)
 
             #If approaching from the right
@@ -96,12 +96,12 @@ class Player():
         
         if collideIndex != -1:
             hitRec = groundsList[collideIndex]
+            print(*hitRec)
             
-            if (self.falling == True) and (self.Rec.y > hitRec.y) and ((self.Rec.x + self.Rec.w > hitRec.x) or (self.Rec.x < hitRec.x + hitRec.w)):
-                self.Rec.update(self.Rec.x, (hitRec.y - self.Rec.h), self.Rec.w, self.Rec.h)
-                self.falling = False
-                self.jumping = False
-                self.grounded = True
+            self.Rec.update(self.Rec.x, (hitRec.y - self.Rec.h), self.Rec.w, self.Rec.h)
+            self.falling = False
+            self.jumping = False
+            self.grounded = True
                 
        
 #Anything we want to draw to screen call here
