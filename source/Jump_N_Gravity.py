@@ -24,6 +24,7 @@ speed = 5 #Horizontal movement speed in meters per second
 HeldIntervals = [] #Holds every delta y in the upward portion of the jump parabola
 difVals = []
 FallList = difVals #Will hold the reversed list of delta y's, for the downward portion
+groundsList = [] #Ground object rects will automatically populate this list
 
 '''
 Equation for the height of an object in terms of time since it was launched
@@ -32,13 +33,14 @@ Height (after x seconds) = acceleration due to gravity + initial velocity of lau
 If there were other sources of acceleration (such as a gravitational feild of another object overhead) then you would add acceleration due to that object
 '''
 class Ground():
-    def __init__(self):
-        self.color = green
-        self.w = 1280
-        self.h = 20
-        self.x = 0
-        self.y = 700
+    def __init__(self, color, width, height, xpos, ypos):
+        self.color = color
+        self.w = width
+        self.h = height
+        self.x = xpos
+        self.y = ypos
         self.Rec = pygame.Rect(self.x, self.y, self.w, self.h)
+        groundsList.append(self.Rec)
 
     def blit(self):
         pygame.draw.rect(ds, self.color, self.Rec)
@@ -48,84 +50,83 @@ class Player():
         self.color = black
         self.w = 20
         self.h = 20
-        self.x = 20
-        self.y = 680
+        self.init_y = 680
         self.jumping = False
         self.falling = False
         self.grounded = True
-        self.Rec = pygame.Rect(self.x, self.y, self.w, self.h)
+        self.Rec = pygame.Rect(20, 680, self.w, self.h) #(x-pos, y-pos, width, height)
+        self.dx = 0
 
     def blit(self):
         pygame.draw.rect(ds, self.color, self.Rec)
 
     def move(self, dx):
         self.Rec = self.Rec.move(dx, 0)
+        self.dx = dx
 
     def jump(self):
         self.jumping = True
         self.index = 0
         self.grounded = False
+        self.init_y = self.Rec.y
 
+    def detectWalls(self):
+        collideIndex = self.Rec.collidelist(groundsList) #Returns index of rect object being collided with
+
+        if collideIndex != -1: #-1 means no collisions, otherwise the index of the objcet collided with is stored here
+            hitRec = groundsList[collideIndex] #The collided with object is stored here
+            
+            #If approaching from the left and the box is below the rect object's (ground) top
+            if (self.dx > 0) and (self.Rec.y > hitRec.y):
+                self.Rec.update((hitRec.x - self.w), self.Rec.y, self.Rec.w, self.Rec.h)
+
+            #If approaching from the right
+            elif (self.dx < 0) and (self.Rec.y > hitRec.y):
+                self.Rec.update((hitRec.x + hitRec.w + self.w), self.Rec.y, self.Rec.w, self.Rec.h)
     def fall(self):
-        if self.jumping: #If Space bar is pressed
-            dH = difVals[self.index] * ratio #Calculate the height the box should be at, then apply pixel : meter ratio
-            self.Rec = self.Rec.move(0, -dH)
-            if (self.index < len(difVals)-1):
-                self.index += 1
-            else:                       #After iterating through HeldIntervals
-                self.jumping = False
-                self.falling = True
-                self.index = 1          #Starts at 1 not 0 because otherwise the box would be at its apex for 2 frames rather than 1
-        elif self.falling:
-            dH = FallList[self.index] * ratio
-            self.Rec = self.Rec.move(0, dH)
-            if (self.index < len(FallList)-1):
-                self.index += 1
-            else:
+        if not self.grounded: #If Space bar is pressed
+            intVal = (1/60) * self.index
+            newY = H(intVal, self.init_y) #* (ratio/60) #Calculate the height the box should be at, then apply pixel : meter ratio
+            self.index += 1
+            self.Rec.update(self.Rec.x, newY, self.Rec.w, self.Rec.h)
+
+#Jumped the gun, should be placed in a new branch, this stops the box from falling to the ground after colliding with a ground object rect
+    def newLanding(self):
+        collideIndex = self.Rec.collidelist(groundsList)
+        
+        if collideIndex != -1:
+            hitRec = groundsList[collideIndex]
+            
+            if (self.falling == True) and (self.Rec.y > hitRec.y) and ((self.Rec.x + self.Rec.w > hitRec.x) or (self.Rec.x < hitRec.x + hitRec.w)):
+                self.Rec.update(self.Rec.x, (hitRec.y - self.Rec.h), self.Rec.w, self.Rec.h)
                 self.falling = False
+                self.jumping = False
                 self.grounded = True
-        else:
-            pass
+                
        
 #Anything we want to draw to screen call here
+#For the box to appear "In front" of raised grounds, blit it after the other ground objects.
+#To hide a box behind a ground object, blit it before the ground object
 def blit2screen():
+    baseGround.blit()
+    elevG1.blit()
     player.blit()
-    ground.blit()
     
 #The equation for height of a projectile using gravity and a predetermined initial velocity (t refers to time in seconds)
-def H(t):
-    return ((gravity * (t**2)) + (initVel * t))
-
-def findIntervals():
-    apex = -initVel / (2 * gravity) #Calculates at what time the maximum height occurs (Only works for gravity and intial velocity, no other forces)
-    index = 0
-    calc = True
-    
-    while calc:
-        newInt = (1/60) * index #1/60 because I limited pygame to 60fps
-        val = H( newInt ) 
-        
-        if (newInt <= apex): #Limits the list to height-at-each-interval up until the apex (since parabolas are symetrical we don't need to continue calc)
-            HeldIntervals.append( val )
-            index += 1
-        else:
-            calc = False
-
-    for i in range(0,len(HeldIntervals)-1):
-        difVals.append( HeldIntervals[i+1] - HeldIntervals[i])
-
-    
-     #FallList is defined by difVals, since we populate difVals here, and we want FallList reversed, it must be done here
-            #==========================================================================================================================================================================
-
-findIntervals() #Pre-calculates height of projectiles at certain intervals which line up with program frames
-FallList = difVals[::-1] #This method of reversing a list prevents the original "difVals" from also being reversed, reverse() reverses both
+def H(t, init_height):
+    return (( (-gravity * (t**2)) - (initVel * t) )*ratio + init_height) #Use this because the origin is the top-left of the screen
 
 player = Player() #Creates instance of Player class
-ground = Ground() #Creates instance of Ground class
+
+baseGround = Ground(green, 1280, 20, 0, 700) #Creates instance of Ground class
+elevG1 = Ground(green, 100, 220, 1180, 500) #Ground(color, width, height, x-pos, y-pos)
 
 dx = 0 #Initialize horizontal movement to 0 (no change in x-position)
 while True:
+    if player.Rec.y > 680:
+        player.grounded = True
+        player.Rec.update(player.Rec.x, 680, player.Rec.w, player.Rec.h)
+        
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit()
@@ -141,8 +142,11 @@ while True:
             if event.type == pygame.KEYUP:
                 if ((event.key == pygame.K_LEFT) or (event.key == pygame.K_RIGHT)):
                     dx = 0
+                    
     player.move(dx) #Horizontal movement (no momentum / friction)
     player.fall() #Brings the box down unless box attribute grounded is true
+    player.detectWalls() #Detects if a player meets a wall
+    player.newLanding()
     
     ds.fill(white) #White background
     blit2screen() #Draw objects on the screen
