@@ -55,6 +55,7 @@ class Player():
         self.falling = False
         self.grounded = True
         self.Rec = pygame.Rect(20, 680, self.w, self.h) #(x-pos, y-pos, width, height)
+        #self.RecSearchArea = pygame.Rect(self.Rec.x, self.Rec.y, self.Rec.w, 720)
         self.dx = 0
 
     def blit(self):
@@ -62,6 +63,7 @@ class Player():
 
     def move(self, dx):
         self.Rec = self.Rec.move(dx, 0)
+        #self.RecSearchArea = self.RecSearchArea.move(dx, 0)
         self.dx = dx
 
     def jump(self):
@@ -71,25 +73,37 @@ class Player():
         self.init_y = self.Rec.y
 
     def detectWalls(self):
+        #Stop the player from going off the screen (left side)
+        if self.Rec.x < 0:
+            self.Rec.update(0, self.Rec.y, self.Rec.w, self.Rec.h)
+        #Stop the player from going off the screen (right side)
+        elif self.Rec.x + self.Rec.w > 1280:
+            self.Rec.update(1280 - self.Rec.w, self.Rec.y, self.Rec.w, self.Rec.h)
+
+        #============================================================================================================================        
         collideIndex = self.Rec.collidelist(groundsList) #Returns index of rect object being collided with
 
         if collideIndex != -1: #-1 means no collisions, otherwise the index of the objcet collided with is stored here
             hitRec = groundsList[collideIndex] #The collided with object is stored here
             
             #If approaching from the left and the box is below the rect object's (ground) top
-            if (self.dx > 0) and (self.Rec.y + self.Rec.h > hitRec.y):
+            if (self.dx > 0) and (self.Rec.y + self.Rec.h > hitRec.y +1): # For some reason the +1 makes the box not "teleport" to the top of a ground rec
                 self.Rec.update((hitRec.x - self.w), self.Rec.y, self.Rec.w, self.Rec.h)
+                
+                #self.RecSearchArea.update((hitRec.x - self.w), self.RecSearchArea.y, self.RecSearchArea.w, self.RecSearchArea.h)
 
             #If approaching from the right
-            elif (self.dx < 0) and (self.Rec.y > hitRec.y):
+            elif (self.dx < 0) and (self.Rec.y + self.Rec.h > hitRec.y):
                 self.Rec.update((hitRec.x + hitRec.w + self.w), self.Rec.y, self.Rec.w, self.Rec.h)
+                #self.RecSearchArea.update((hitRec.x - self.w), self.RecSearchArea.y, self.RecSearchArea.w, self.RecSearchArea.h)
+                
     def fall(self):
         if not self.grounded: #If Space bar is pressed
             intVal = (1/60) * self.index
-            newY = H(intVal, self.init_y) #* (ratio/60) #Calculate the height the box should be at, then apply pixel : meter ratio
+            newY = H(intVal, self.init_y) #Calculate the height the box should be at, H(frame_interval, starting_Height)
             self.index += 1
             self.Rec.update(self.Rec.x, newY, self.Rec.w, self.Rec.h)
-
+            
 #Jumped the gun, should be placed in a new branch, this stops the box from falling to the ground after colliding with a ground object rect
     def newLanding(self):
         collideIndex = self.Rec.collidelist(groundsList)
@@ -102,8 +116,17 @@ class Player():
             self.falling = False
             self.jumping = False
             self.grounded = True
-                
-       
+
+    def Check4Grounds(self):
+        tallestY = 720
+        
+        for rect in groundsList:
+            if ((self.Rec.x < rect.x) and (rect.x < self.Rec.x + self.Rec.w)) or ((self.Rec.x < rect.x + rect.w) and (rect.x + rect.w < self.Rec.x + self.Rec.w)) or ((self.Rec.x > rect.x) and (self.Rec.x + self.Rec.w < rect.x + rect.w)):
+                if rect.y < tallestY:
+                    tallestY = rect.y
+
+        return tallestY
+            
 #Anything we want to draw to screen call here
 #For the box to appear "In front" of raised grounds, blit it after the other ground objects.
 #To hide a box behind a ground object, blit it before the ground object
@@ -144,9 +167,9 @@ while True:
                     dx = 0
                     
     player.move(dx) #Horizontal movement (no momentum / friction)
-    player.fall() #Brings the box down unless box attribute grounded is true
     player.detectWalls() #Detects if a player meets a wall
     player.newLanding()
+    player.fall() #Brings the box down unless box attribute grounded is true
     
     ds.fill(white) #White background
     blit2screen() #Draw objects on the screen
